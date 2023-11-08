@@ -66,14 +66,14 @@ function Hello() {
       <textarea
         rows={4}
         style={{ width: '100%' }}
-        placeholder="请输入合法钱包地址，多个逗号分割"
+        placeholder="请输入合法钱包地址，多个换行"
         onChange={(e) => {
           setShowResult(false);
           const { value } = e.target;
           if (!value) {
             return;
           }
-          const addresses = value.split(',');
+          const addresses = value.split('\n');
           const d: IData[] = [];
           addresses.forEach((item) => {
             const a = item.trim();
