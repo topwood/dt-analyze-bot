@@ -43,7 +43,7 @@ function getWalletAge(event: any, address: string) {
     }
   })
 
-  win.loadURL(`https://debank.com/profile/${address}`)
+  win.loadURL(`https://bscscan.com/address/${address}`)
 
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
     // 在这里你可以处理错误
@@ -53,20 +53,45 @@ function getWalletAge(event: any, address: string) {
   win.webContents.on('did-finish-load', () => {
     const checkElement = `
       new Promise((resolve, reject) => {
+        let maxTryTimes = 20;
         const interval = setInterval(() => {
-          const element = document.querySelector('.is-age').textContent;
+          maxTryTimes -= 1;
+          if (maxTryTimes === 0) {
+            resolve('timeout');
+            return;
+          }
+          let allNotExist = document.querySelectorAll(".card-body.d-flex.flex-column.gap-5 .text-cap.mb-1.mt-1");
 
-          // 你可以修改这里的条件，确保页面已经到达你想要的状态
-          if (element) {
+          // 先判断是否没有历史交易的
+          for (let i = 0, max = allNotExist.length; i < max; i++) {
+            if (allNotExist[i].textContent.indexOf("No Txns Sent From This Address") !== -1) {
+              resolve(null);
+              return;
+            }
+          }
+
+          let elements = [];
+          let all = document.querySelectorAll(".d-flex.align-items-center.gap-1 .text-muted");
+          // 遍历所有元素
+          for (let i = 0, max = all.length; i < max; i++) {
+            if (all[i].textContent.indexOf("ago") !== -1) {
+              elements.push(all[i].textContent);
+            }
+          }
+          if (elements.length > 0) {
             clearInterval(interval);
-            resolve(element);
+            if (elements[1]) {
+              resolve(elements[1]);
+            } else {
+              resolve(elements[0]);
+            }
           }
         }, 500); // 每500 ms检查一次
       });
     `;
 
     win.webContents.executeJavaScript(checkElement).then((date) => {
-      event.reply('get-wallet-age', date);
+      event.reply('get-wallet-age', `${address}#${date}`);
     });
   })
 }
