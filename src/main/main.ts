@@ -45,9 +45,10 @@ function getWalletAge(event: any, address: string) {
 
   win.loadURL(`https://bscscan.com/address/${address}`)
 
-  win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+  win.webContents.on('did-fail-load', (e, errorCode, errorDescription, validatedURL, isMainFrame) => {
     // 在这里你可以处理错误
     console.log(`An error (${errorCode}) occurred while loading: ${validatedURL}. Description: ${errorDescription}`)
+    event.reply('get-wallet-age', `error`);
   })
 
   win.webContents.on('did-finish-load', () => {

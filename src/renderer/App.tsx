@@ -36,6 +36,12 @@ function Hello() {
       ipcRenderer.sendMessage('get-wallet-age', item.address);
     });
     ipcRenderer.on('get-wallet-age', (dateStr: any) => {
+      if (dateStr === 'error') {
+        alert('内部错误...请联系开发者');
+        setLoading(false);
+        setShowResult(false);
+        return;
+      }
       const [address, age] = dateStr.split('#');
       const d = [...data];
       d.forEach((item) => {
