@@ -31,13 +31,17 @@ function Hello() {
     const validData = data.filter((item) => !item.error);
     let max = validData.length;
     setShowResult(true);
+    if (max <= 0) {
+      return;
+    }
     setLoading(true);
     validData.forEach((item) => {
       ipcRenderer.sendMessage('get-wallet-age', item.address);
     });
-    ipcRenderer.on('get-wallet-age', (dateStr: any) => {
-      if (dateStr === 'error') {
-        alert('内部错误...请联系开发者');
+    // @ts-ignore
+    ipcRenderer.on('get-wallet-age', (dateStr: string) => {
+      if (dateStr.startsWith('error')) {
+        alert(`内部错误...${dateStr}`);
         setLoading(false);
         setShowResult(false);
         return;
@@ -84,7 +88,7 @@ function Hello() {
             } else {
               d.push({
                 address: a,
-                error: '非法地址',
+                error: '是非法地址',
               });
             }
           });

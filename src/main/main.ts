@@ -15,13 +15,13 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
-const fs = require('node:fs')
+const fs = require('node:fs');
 
 app.disableHardwareAcceleration();
 
 const isValidAddress = (address: string) => {
   return true;
-}
+};
 
 process.on('uncaughtException', function (error) {
   // 这里可以处理错误，例如
@@ -29,7 +29,6 @@ process.on('uncaughtException', function (error) {
 });
 
 function getWalletAge(event: any, address: string) {
-
   if (!isValidAddress(address)) {
     return;
   }
@@ -39,17 +38,22 @@ function getWalletAge(event: any, address: string) {
     height: 600,
     show: false,
     webPreferences: {
-      offscreen: true
-    }
-  })
+      offscreen: true,
+    },
+  });
 
-  win.loadURL(`https://bscscan.com/address/${address}`)
+  win.loadURL(`https://etherscan.io/address/${address}`);
 
-  win.webContents.on('did-fail-load', (e, errorCode, errorDescription, validatedURL, isMainFrame) => {
-    // 在这里你可以处理错误
-    console.log(`An error (${errorCode}) occurred while loading: ${validatedURL}. Description: ${errorDescription}`)
-    event.reply('get-wallet-age', `error`);
-  })
+  win.webContents.on(
+    'did-fail-load',
+    (e, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      // 在这里你可以处理错误
+      console.log(
+        `An error (${errorCode}) occurred while loading: ${validatedURL}. Description: ${errorDescription}`,
+      );
+      event.reply('get-wallet-age', `error-${errorCode}-${errorDescription}`);
+    },
+  );
 
   win.webContents.on('did-finish-load', () => {
     const checkElement = `
@@ -94,7 +98,7 @@ function getWalletAge(event: any, address: string) {
     win.webContents.executeJavaScript(checkElement).then((date) => {
       event.reply('get-wallet-age', `${address}#${date}`);
     });
-  })
+  });
 }
 
 class AppUpdater {
@@ -108,9 +112,8 @@ class AppUpdater {
 let mainWindow: BrowserWindow | null = null;
 
 ipcMain.on('get-wallet-age', async (event, address) => {
-  await getWalletAge(event, address)
+  await getWalletAge(event, address);
 });
-
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
