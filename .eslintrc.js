@@ -12,6 +12,7 @@ module.exports = {
     'no-shadow': 'off',
     '@typescript-eslint/no-shadow': 'error',
     'no-unused-vars': 'off',
+    'react/function-component-definition': 'off',
     '@typescript-eslint/no-unused-vars': 'error',
   },
   parserOptions: {

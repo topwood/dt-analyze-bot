@@ -17,6 +17,13 @@ import { resolveHtmlPath } from './util';
 
 const fs = require('node:fs');
 
+const chainBroswerMap = {
+  eth: 'https://etherscan.io/address/{{address}}',
+  bsc: 'https://bscscan.com/address/{{address}}',
+};
+
+type chain = 'eth' | 'bsc';
+
 app.disableHardwareAcceleration();
 
 const isValidAddress = (address: string) => {
@@ -28,7 +35,7 @@ process.on('uncaughtException', function (error) {
   console.log('捕获一个exception:', error);
 });
 
-function getWalletAge(event: any, address: string) {
+function getWalletAge(event: any, address: string, chain: chain) {
   if (!isValidAddress(address)) {
     return;
   }
@@ -42,7 +49,7 @@ function getWalletAge(event: any, address: string) {
     },
   });
 
-  win.loadURL(`https://etherscan.io/address/${address}`);
+  win.loadURL(chainBroswerMap[chain].replace('{{address}}', address));
 
   win.webContents.on(
     'did-fail-load',
@@ -97,6 +104,7 @@ function getWalletAge(event: any, address: string) {
 
     win.webContents.executeJavaScript(checkElement).then((date) => {
       event.reply('get-wallet-age', `${address}#${date}`);
+      win.close();
     });
   });
 }
@@ -111,8 +119,8 @@ class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 
-ipcMain.on('get-wallet-age', async (event, address) => {
-  await getWalletAge(event, address);
+ipcMain.on('get-wallet-age', async (event, address, chain) => {
+  await getWalletAge(event, address, chain);
 });
 
 if (process.env.NODE_ENV === 'production') {
