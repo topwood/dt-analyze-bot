@@ -1,7 +1,13 @@
 import { useState } from 'react';
 
 import { Button, Card, Input, Radio } from 'antd';
-import { formatDate, getError, IData, sortDate } from './utils';
+import {
+  formatDate,
+  getError,
+  groupArrayElements,
+  IData,
+  sortDate,
+} from './utils';
 
 const { ipcRenderer } = window.electron;
 const { TextArea } = Input;
@@ -24,6 +30,39 @@ export default function Content() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<IData[]>([]);
   const [chain, setChain] = useState('eth');
+  const [inputValue, setInputValue] = useState('');
+
+  const handleReset = () => {
+    setShowResult(false);
+    setData([]);
+    setInputValue('');
+  };
+
+  const handleInput = (e: any) => {
+    setInputValue(e.target.value);
+    setData([]);
+    setShowResult(false);
+    const { value } = e.target;
+    if (!value) {
+      return;
+    }
+    const addresses = value.split('\n');
+    const d: IData[] = [];
+    addresses.forEach((item: any) => {
+      const a = item.trim();
+      if (isValidAddress(a)) {
+        d.push({
+          address: a,
+        });
+      } else {
+        d.push({
+          address: a,
+          error: '是非法地址',
+        });
+      }
+    });
+    setData(d);
+  };
 
   const handleClick = () => {
     if (loading) {
@@ -33,13 +72,36 @@ export default function Content() {
     const validData = data.filter((item) => !item.error);
     let max = validData.length;
     setShowResult(true);
+    // 全部非法的直接返回了
     if (max <= 0) {
       return;
     }
+    const { groups, loopCounts, batches } = groupArrayElements(validData, 10);
+
     setLoading(true);
-    validData.forEach((item) => {
-      ipcRenderer.sendMessage('get-wallet-age', item.address, chain);
-    });
+
+    // 当前批次的数量
+    let currentBacthCount = batches[0];
+    // 当前游标
+    let currentCursor = 0;
+    // 上一次游标
+    let lastCursor = -1;
+
+    // 轮询是否一批结束了，一批结束了可以请求下一批
+    const interval = setInterval(() => {
+      // 说明一批请求完了
+      if (currentCursor > lastCursor && currentCursor < loopCounts) {
+        lastCursor = currentCursor;
+        currentBacthCount = batches[currentCursor];
+        groups[currentCursor].forEach((item) => {
+          ipcRenderer.sendMessage('get-wallet-age', item.address, chain);
+        });
+      } else if (currentCursor >= loopCounts) {
+        // 结束轮询
+        clearInterval(interval);
+      }
+    }, 500);
+
     // @ts-ignore
     ipcRenderer.on('get-wallet-age', (dateStr: string) => {
       if (dateStr.startsWith('error')) {
@@ -58,6 +120,10 @@ export default function Content() {
       });
       setData(d);
 
+      currentBacthCount -= 1;
+      if (currentBacthCount === 0) {
+        currentCursor += 1;
+      }
       max -= 1;
       if (max === 0) {
         setLoading(false);
@@ -85,32 +151,18 @@ export default function Content() {
         rows={20}
         style={{ width: '100%', marginBottom: 12 }}
         placeholder="请输入合法钱包地址，多个换行"
-        onChange={(e) => {
-          setShowResult(false);
-          const { value } = e.target;
-          if (!value) {
-            return;
-          }
-          const addresses = value.split('\n');
-          const d: IData[] = [];
-          addresses.forEach((item) => {
-            const a = item.trim();
-            if (isValidAddress(a)) {
-              d.push({
-                address: a,
-              });
-            } else {
-              d.push({
-                address: a,
-                error: '是非法地址',
-              });
-            }
-          });
-          setData(d);
-        }}
+        value={inputValue}
+        onChange={handleInput}
       />
       <Button type="primary" onClick={handleClick} loading={loading}>
         一键获取钱包的年龄
+      </Button>
+      <Button
+        style={{ marginLeft: 12 }}
+        onClick={handleReset}
+        disabled={loading}
+      >
+        清空
       </Button>
       {showResult && (
         <p>
