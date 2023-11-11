@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 export interface IData {
   address?: string;
   age?: string;
@@ -91,4 +93,17 @@ export function groupArrayElements(array: any[], groupSize: number = 30) {
     loopCounts,
     batches,
   };
+}
+
+export function dateCheck(date: string = '', max: number) {
+  if (!date) {
+    return false;
+  }
+  const now = dayjs();
+  const targetDate = dayjs(date);
+  const diffInMonths = now.diff(targetDate, 'month');
+  if (diffInMonths >= max) {
+    return true;
+  }
+  return false;
 }

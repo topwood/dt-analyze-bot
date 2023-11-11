@@ -1,5 +1,4 @@
-import { useState } from 'react';
-
+import { useState, useRef } from 'react';
 import { Button, Card, Input, Radio } from 'antd';
 import {
   formatDate,
@@ -8,10 +7,13 @@ import {
   IData,
   sortDate,
 } from './utils';
+import WalletAgeResult from './WalletAgeResult';
+import WalletAgeProgress from './WalletAgeProgress';
 
 const { ipcRenderer } = window.electron;
 const { TextArea } = Input;
 
+// 校验地址合法性
 const isValidAddress = (address: string) => {
   if (!address) {
     return false;
@@ -25,17 +27,22 @@ const isValidAddress = (address: string) => {
   return true;
 };
 
+// 批量获取钱包的年龄
 export default function Content() {
   const [showResult, setShowResult] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<IData[]>([]);
   const [chain, setChain] = useState('eth');
   const [inputValue, setInputValue] = useState('');
+  const maxCount = useRef(0);
+  const [percent, setPercent] = useState(0);
 
   const handleReset = () => {
     setShowResult(false);
     setData([]);
     setInputValue('');
+    setPercent(0);
+    maxCount.current = 0;
   };
 
   const handleInput = (e: any) => {
@@ -69,14 +76,16 @@ export default function Content() {
       alert('正在加载中，请稍后再试');
       return;
     }
+    setPercent(0);
     const validData = data.filter((item) => !item.error);
     let max = validData.length;
     setShowResult(true);
+    maxCount.current = max;
     // 全部非法的直接返回了
     if (max <= 0) {
       return;
     }
-    const { groups, loopCounts, batches } = groupArrayElements(validData, 10);
+    const { groups, loopCounts, batches } = groupArrayElements(validData, 2);
 
     setLoading(true);
 
@@ -105,7 +114,7 @@ export default function Content() {
     // @ts-ignore
     ipcRenderer.on('get-wallet-age', (dateStr: string) => {
       if (dateStr.startsWith('error')) {
-        alert(`内部错误...${dateStr}`);
+        console.log(`内部错误...${dateStr}`);
         setLoading(false);
         setShowResult(false);
         return;
@@ -125,6 +134,7 @@ export default function Content() {
         currentCursor += 1;
       }
       max -= 1;
+      setPercent(((maxCount.current - max) / maxCount.current) * 100);
       if (max === 0) {
         setLoading(false);
       }
@@ -165,20 +175,10 @@ export default function Content() {
         清空
       </Button>
       {showResult && (
-        <p>
-          {data.map((item) => {
-            if (item.error) {
-              return (
-                <div style={{ color: 'yellow' }}>{`钱包 ${item.address} ${
-                  item.error || '是非法钱包地址'
-                } `}</div>
-              );
-            }
-            return (
-              <div>{`钱包 ${item.address} 的年龄是 ${item.age || '...'}`}</div>
-            );
-          })}
-        </p>
+        <div style={{ marginTop: 24 }}>
+          <WalletAgeProgress percent={percent} />
+          <WalletAgeResult data={data} />
+        </div>
       )}
     </Card>
   );
