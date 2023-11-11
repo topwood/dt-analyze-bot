@@ -119,9 +119,7 @@ export default function Content() {
         setShowResult(false);
         return;
       }
-      console.log('dateStr...', dateStr);
       const [address, age, value] = dateStr.split('#');
-      console.log('value..', value);
       const d = [...data];
       d.forEach((item) => {
         if (item.address === address) {

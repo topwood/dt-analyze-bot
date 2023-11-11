@@ -15,7 +15,6 @@ const renderAddress = (item: IData) => {
 };
 
 const renderTable = (data: IData[]) => {
-  console.log(data);
   return (
     <Table
       size="small"

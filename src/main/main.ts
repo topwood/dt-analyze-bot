@@ -43,7 +43,7 @@ const DEFAULT_ETH_URL =
 // const DEFAULT_ETH_URL =
 //   'https://etherscan.io/advanced-filter?fadd=0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f&tadd=0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f&txntype=2';
 
-const createEthWindow = (event) => {
+const createEthWindow = (event: any) => {
   console.log('正在打开以太坊窗口...');
   ethWin = new BrowserWindow({
     width: 800,
