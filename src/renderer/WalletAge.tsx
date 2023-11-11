@@ -114,17 +114,22 @@ export default function Content() {
     // @ts-ignore
     ipcRenderer.on('get-wallet-age', (dateStr: string) => {
       if (dateStr.startsWith('error')) {
-        console.log(`内部错误...${dateStr}`);
+        alert(`内部错误...${dateStr}`);
         setLoading(false);
         setShowResult(false);
         return;
       }
-      const [address, age] = dateStr.split('#');
+      console.log('dateStr...', dateStr);
+      const [address, age, value] = dateStr.split('#');
+      console.log('value..', value);
       const d = [...data];
       d.forEach((item) => {
         if (item.address === address) {
-          item.age = formatDate(age);
+          const [last, first] = age.split('|');
+          item.first = formatDate(first);
+          item.last = formatDate(last);
           item.error = getError(age);
+          item.value = value;
         }
       });
       setData(d);
@@ -153,12 +158,12 @@ export default function Content() {
           }}
         >
           <Radio.Button value="eth">以太坊链</Radio.Button>
-          <Radio.Button value="bsc">币安链</Radio.Button>
+          {/* <Radio.Button value="bsc">币安链</Radio.Button> */}
         </Radio.Group>
       }
     >
       <TextArea
-        rows={20}
+        rows={16}
         style={{ width: '100%', marginBottom: 12 }}
         placeholder="请输入合法钱包地址，多个换行"
         value={inputValue}

@@ -9,7 +9,7 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, session } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
@@ -35,87 +35,114 @@ process.on('uncaughtException', function (error) {
   console.log('捕获一个exception:', error);
 });
 
-function getWalletAge(event: any, address: string, chain: chain) {
-  if (!isValidAddress(address)) {
-    return;
-  }
+let ethWin: BrowserWindow;
 
-  const win = new BrowserWindow({
+const DEFAULT_ETH_URL =
+  'https://etherscan.io/address/0x6b98be10e7bc8538130f7e58620d875a7ce6e0a8';
+
+// const DEFAULT_ETH_URL =
+//   'https://etherscan.io/advanced-filter?fadd=0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f&tadd=0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f&txntype=2';
+
+const createEthWindow = (event) => {
+  console.log('正在打开以太坊窗口...');
+  ethWin = new BrowserWindow({
     width: 800,
     height: 600,
     show: false,
-    webPreferences: {
-      offscreen: true,
-    },
   });
 
-  win.loadURL(chainBroswerMap[chain].replace('{{address}}', address));
+  ethWin.loadURL(DEFAULT_ETH_URL);
 
-  win.webContents.on(
+  ethWin.webContents.on(
     'did-fail-load',
     (e, errorCode, errorDescription, validatedURL, isMainFrame) => {
       // 在这里你可以处理错误
       console.log(
         `An error (${errorCode}) occurred while loading: ${validatedURL}. Description: ${errorDescription}`,
       );
-      event.reply('get-wallet-age', `error-${errorCode}-${errorDescription}`);
     },
   );
 
-  win.webContents.on('did-finish-load', () => {
-    const checkElement = `
+  session.defaultSession.webRequest.onCompleted(
+    { urls: [DEFAULT_ETH_URL] },
+    (details) => {
+      if (details.statusCode === 403) {
+        ethWin.show();
+      }
+      console.log(
+        `Response for ${details.method} ${details.url} - Status: ${details.statusCode}`,
+      );
+    },
+  );
+
+  session.defaultSession.webRequest.onErrorOccurred(
+    { urls: [DEFAULT_ETH_URL] },
+    (details) => {
+      console.log(
+        `Failed to load ${details.method} ${details.url} - Error: ${details.error}`,
+      );
+      event.reply('get-wallet-age', `error: 请检查您的代理设置！`);
+    },
+  );
+};
+
+function getWalletAge(event: any, address: string, chain: chain) {
+  if (!isValidAddress(address)) {
+    return;
+  }
+
+  const fetchHTML = `
       new Promise((resolve, reject) => {
-        let maxTryTimes = 20;
-        const interval = setInterval(() => {
-          maxTryTimes -= 1;
-          if (maxTryTimes === 0) {
-            resolve('timeout');
-            return;
-          }
-
-          let contractExist = document.querySelectorAll('.d-md-none.d-lg-inline-block.me-1');
-          // 先判断是否是一个合约
-          for (let i = 0, max = contractExist.length; i < max; i++) {
-            if (contractExist[i].textContent.indexOf("Contract") !== -1) {
-              resolve('contract');
-              return;
-            }
-          }
-
-          let allNotExist = document.querySelectorAll(".card-body.d-flex.flex-column.gap-5 .text-cap.mb-1.mt-1");
-
-          // 先判断是否没有历史交易的
-          for (let i = 0, max = allNotExist.length; i < max; i++) {
-            if (allNotExist[i].textContent.indexOf("No Txns Sent From This Address") !== -1) {
-              resolve(null);
-              return;
-            }
-          }
-
-          let elements = [];
-          let all = document.querySelectorAll(".d-flex.align-items-center.gap-1 .text-muted");
-          // 遍历所有元素
-          for (let i = 0, max = all.length; i < max; i++) {
-            if (all[i].textContent.indexOf("ago") !== -1) {
-              elements.push(all[i].textContent);
-            }
-          }
-          if (elements.length > 0) {
-            clearInterval(interval);
-            if (elements[1]) {
-              resolve(elements[1]);
-            } else {
-              resolve(elements[0]);
-            }
-          }
-        }, 500); // 每500 ms检查一次
+        fetch('https://etherscan.io/address/${address}').then(res => {
+          resolve(res.text())
+        })
       });
     `;
 
-    win.webContents.executeJavaScript(checkElement).then((msg) => {
-      event.reply('get-wallet-age', `${address}#${msg}`);
-      win.close();
-    });
+  ethWin.webContents.executeJavaScript(fetchHTML).then((html = '') => {
+    // 识别是合约
+    if (html.includes('Creator')) {
+      event.reply('get-wallet-age', `${address}#contract`);
+      return;
+    }
+
+    const regex = /from .*? ago/g;
+    let matches = html.match(regex) || [];
+    // 没有交易记录
+    if (!matches || matches.length === 0) {
+      matches = ['null'];
+    }
+    matches = matches
+      .filter((item: string) => item.length < 40)
+      .filter((item: string) => !item.includes('from more than one'));
+
+    // 匹配以太坊价值
+    let regEthValue = /(?<=<\/h4>\s*\$)[\d,]+\.\d{2}(?=\s*<span)/g;
+
+    let ethValue = 0;
+    let matchesEthValue = html.match(regEthValue);
+    if (matchesEthValue) {
+      let numberAsText = matchesEthValue[0];
+      let number = parseFloat(numberAsText.replace(/,/g, ''));
+      ethValue = number;
+    }
+
+    // 匹配代币价值
+    let tokenValue = 0;
+    let regTokenValue =
+      /(?<=Token Holdings([\s\S]*?)\$)[\d,]+\.\d{2}(?=\s*<span)/gs;
+
+    let matchesTokenValue = html.match(regTokenValue);
+    if (matchesTokenValue) {
+      let numberAsText = matchesTokenValue[0];
+      let number = parseFloat(numberAsText.replace(/,/g, ''));
+      tokenValue = number;
+    }
+
+    event.reply(
+      'get-wallet-age',
+      `${address}#${matches.join('|')}#${ethValue + tokenValue}`,
+    );
   });
 }
 
@@ -130,7 +157,14 @@ class AppUpdater {
 let mainWindow: BrowserWindow | null = null;
 
 ipcMain.on('get-wallet-age', async (event, address, chain) => {
-  await getWalletAge(event, address, chain);
+  if (!ethWin) {
+    createEthWindow(event);
+    setTimeout(() => {
+      getWalletAge(event, address, chain);
+    }, 1000);
+  } else {
+    await getWalletAge(event, address, chain);
+  }
 });
 
 if (process.env.NODE_ENV === 'production') {
@@ -144,19 +178,6 @@ const isDebug =
 if (isDebug) {
   require('electron-debug')();
 }
-
-const installExtensions = async () => {
-  const installer = require('electron-devtools-installer');
-  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
-  const extensions = ['REACT_DEVELOPER_TOOLS'];
-
-  return installer
-    .default(
-      extensions.map((name) => installer[name]),
-      forceDownload,
-    )
-    .catch(console.log);
-};
 
 const createWindow = async () => {
   // if (isDebug) {

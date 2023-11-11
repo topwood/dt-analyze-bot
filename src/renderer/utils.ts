@@ -2,13 +2,24 @@ import dayjs from 'dayjs';
 
 export interface IData {
   address?: string;
-  age?: string;
+  /**
+   * 首次交易时间
+   */
+  first?: string;
+  /**
+   * 最近交易时间
+   */
+  last?: string;
   error?: string;
+  /**
+   * 价值
+   */
+  value?: string;
 }
 
 export const getError = (str?: string) => {
   if (!str) {
-    return '地址可能出错';
+    return '-';
   }
   if (str === 'null') {
     return '没有交易记录';
@@ -29,34 +40,23 @@ export const formatDate = (str?: string) => {
   if (getError(str)) {
     return getError(str);
   }
-  // 输入的字符串
-  // let str = "from 711 days 8 hrs ago";
 
-  // 从字符串中提取天和小时
-  let days = parseInt(str.split(' ')[1]);
-  let hours = parseInt(str.split(' ')[3]);
+  const regex =
+    /from (?:(\d+)? day?s?)? ?(?:(\d+)? hr?s?)? ?(?:(\d+)? min?s?)? ago/;
+  const match = str.match(regex);
 
-  // 计算总毫秒数
-  let millisecs = days * 24 * 60 * 60 * 1000 + hours * 60 * 60 * 1000;
+  if (match) {
+    let days = parseInt(match[1], 10) || 0;
+    let hours = parseInt(match[2], 10) || 0;
+    let minutes = parseInt(match[3], 10) || 0;
 
-  // 获取当前时间
-  let now = new Date();
-
-  // 从当前时间中减去提取出的时间
-  let pastDate = new Date(now.getTime() - millisecs);
-
-  // 提取年月日时分秒
-  let year = pastDate.getFullYear();
-  let month = ('0' + (pastDate.getMonth() + 1)).slice(-2); // 因为月份是从0开始的，所以需要加一
-  let date = ('0' + pastDate.getDate()).slice(-2);
-  let hrs = ('0' + pastDate.getHours()).slice(-2);
-  let mins = ('0' + pastDate.getMinutes()).slice(-2);
-  let secs = ('0' + pastDate.getSeconds()).slice(-2);
-
-  // 组合成 "YYYY-MM-MM HH:mm:ss" 格式
-  let formattedDate = `${year}-${month}-${date} ${hrs}:${mins}:${secs}`;
-
-  return formattedDate;
+    let dt = new Date();
+    dt.setDate(dt.getDate() - days);
+    dt.setHours(dt.getHours() - hours);
+    dt.setMinutes(dt.getMinutes() - minutes);
+    return dayjs(dt).format('YYYY-MM-DD HH:mm:ss');
+  }
+  return '-';
 };
 
 export const sortDate = (arr: IData[]) => {
@@ -67,8 +67,8 @@ export const sortDate = (arr: IData[]) => {
   //   // 其他对象...
   // ];
   return arr.sort(function (a: IData, b: IData) {
-    let dateA = new Date(a.error ? 0 : a.age || 0),
-      dateB = new Date(b.error ? 0 : b.age || 0);
+    let dateA = new Date(a.error ? 0 : a.first || 0),
+      dateB = new Date(b.error ? 0 : b.first || 0);
     // @ts-ignore
     return dateA - dateB; // 用dateA - dateB 是升序。如果你要降序的话，只要改成 dateB - dateA 即可。
   });
@@ -106,4 +106,15 @@ export function dateCheck(date: string = '', max: number) {
     return true;
   }
   return false;
+}
+
+type chain = 'eth' | 'bsc';
+
+const chainBroswerMap = {
+  eth: 'https://etherscan.io/address/{{address}}',
+  bsc: 'https://bscscan.com/address/{{address}}',
+};
+
+export function getWallet(address: string, chain: chain = 'eth') {
+  return chainBroswerMap[chain].replace('{{address}}', address);
 }
