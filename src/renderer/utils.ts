@@ -11,6 +11,9 @@ export const getError = (str?: string) => {
   if (str === 'null') {
     return '没有交易记录';
   }
+  if (str === 'contract') {
+    return '地址是合约';
+  }
   if (str === 'timeout') {
     return '获取数据超时，请尝试使用或更换代理';
   }

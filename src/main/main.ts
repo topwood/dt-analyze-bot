@@ -72,6 +72,16 @@ function getWalletAge(event: any, address: string, chain: chain) {
             resolve('timeout');
             return;
           }
+
+          let contractExist = document.querySelectorAll('.d-md-none.d-lg-inline-block.me-1');
+          // 先判断是否是一个合约
+          for (let i = 0, max = contractExist.length; i < max; i++) {
+            if (contractExist[i].textContent.indexOf("Contract") !== -1) {
+              resolve('contract');
+              return;
+            }
+          }
+
           let allNotExist = document.querySelectorAll(".card-body.d-flex.flex-column.gap-5 .text-cap.mb-1.mt-1");
 
           // 先判断是否没有历史交易的
@@ -102,8 +112,8 @@ function getWalletAge(event: any, address: string, chain: chain) {
       });
     `;
 
-    win.webContents.executeJavaScript(checkElement).then((date) => {
-      event.reply('get-wallet-age', `${address}#${date}`);
+    win.webContents.executeJavaScript(checkElement).then((msg) => {
+      event.reply('get-wallet-age', `${address}#${msg}`);
       win.close();
     });
   });
