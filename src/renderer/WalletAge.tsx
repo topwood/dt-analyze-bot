@@ -85,7 +85,7 @@ export default function Content() {
     if (max <= 0) {
       return;
     }
-    const { groups, loopCounts, batches } = groupArrayElements(validData, 2);
+    const { groups, loopCounts, batches } = groupArrayElements(validData, 10);
 
     setLoading(true);
 
