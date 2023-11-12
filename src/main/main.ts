@@ -15,6 +15,8 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
+let globalTasks: any[] = [];
+
 const fs = require('node:fs');
 
 const chainBroswerMap = {
@@ -41,17 +43,21 @@ const DEFAULT_ETH_URL =
   'https://etherscan.io/address/0x6b98be10e7bc8538130f7e58620d875a7ce6e0a8';
 
 // const DEFAULT_ETH_URL =
-//   'https://etherscan.io/advanced-filter?fadd=0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f&tadd=0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f&txntype=2';
+// 'https://etherscan.io/advanced-filter?fadd=0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f&tadd=0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f&txntype=2';
 
-const createEthWindow = (event: any) => {
-  console.log('正在打开以太坊窗口...');
+const createEthWindow = (event: any, show: boolean = false) => {
   ethWin = new BrowserWindow({
     width: 800,
     height: 600,
-    show: false,
+    show,
   });
 
   ethWin.loadURL(DEFAULT_ETH_URL);
+  // 假装关闭
+  ethWin.on('close', (e) => {
+    // ethWin.hide();
+    // e.preventDefault();
+  });
 
   ethWin.webContents.on(
     'did-fail-load',
@@ -66,8 +72,20 @@ const createEthWindow = (event: any) => {
   session.defaultSession.webRequest.onCompleted(
     { urls: [DEFAULT_ETH_URL] },
     (details) => {
+      // 如果是403，就代表需要人工处理
       if (details.statusCode === 403) {
         ethWin.show();
+      }
+
+      // 如果检测到有200了，自动关闭窗口，并且将任务队列的任务都触发
+      if (details.statusCode === 200) {
+        ethWin.hide();
+        if (globalTasks.length > 0) {
+          globalTasks.forEach((item) => {
+            getWalletAge(item.event, item.address, item.chain);
+          });
+          globalTasks = [];
+        }
       }
       console.log(
         `Response for ${details.method} ${details.url} - Status: ${details.statusCode}`,
@@ -81,7 +99,9 @@ const createEthWindow = (event: any) => {
       console.log(
         `Failed to load ${details.method} ${details.url} - Error: ${details.error}`,
       );
-      event.reply('get-wallet-age', `error: 请检查您的代理设置！`);
+      if (details.error !== 'net::ERR_CACHE_MISS') {
+        event.reply('get-wallet-age', `error: 请检查您的代理设置！`);
+      }
     },
   );
 };
@@ -182,10 +202,12 @@ ipcMain.on('get-wallet-age', async (event, address, chain) => {
   if (!ethWin) {
     console.log('正在打开以太坊浏览器...');
     createEthWindow(event);
-    setTimeout(() => {
-      console.log('正在分析...');
-      getWalletAge(event, address, chain);
-    }, 1000);
+    // 加入任务队列，等打开成功并且code=200时再做处理
+    globalTasks.push({
+      event,
+      address,
+      chain,
+    });
   } else {
     await getWalletAge(event, address, chain);
   }

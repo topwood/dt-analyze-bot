@@ -15,7 +15,7 @@ export default (data: IData[], chain: Chain) => {
   const [result, setResult] = useState<IData[]>([]);
   const maxCount = useRef(data.length);
   const maxCountCursor = useRef(data.length);
-  const { groups, loopCounts, batches } = groupArrayElements(data, 10);
+  const { groups, loopCounts, batches } = groupArrayElements(data, 8);
 
   const unBind = useRef<Function | null>(null);
 
