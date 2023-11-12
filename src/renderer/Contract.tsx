@@ -1,44 +1,24 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Button, Card, Input, Radio } from 'antd';
-import {
-  formatDate,
-  getError,
-  groupArrayElements,
-  IData,
-  sortDate,
-} from './utils';
+import { Chain } from './utils';
 import WalletAgeResult from './WalletAgeResult';
 import WalletAgeProgress from './WalletAgeProgress';
-
-const { ipcRenderer } = window.electron;
-const { TextArea } = Input;
-
-// 校验地址合法性
-const isValidAddress = (address: string) => {
-  if (!address) {
-    return false;
-  }
-  if (!address.startsWith('0x')) {
-    return false;
-  }
-  if (address.length !== 42) {
-    return false;
-  }
-  return true;
-};
+import useContract from './hooks/useContract';
 
 // 批量获取钱包的年龄
 export default function Content() {
-  const [chain, setChain] = useState('eth');
+  const [chain, setChain] = useState<Chain>('eth');
   const [inputValue, setInputValue] = useState('');
-  const [percent, setPercent] = useState(0);
-  const [showResult, setShowResult] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [contract, setContract] = useState('');
+
+  const { showResult, loading, result, percent, clear } = useContract(
+    contract,
+    chain,
+  );
 
   const handleReset = () => {
-    setPercent(0);
-    setShowResult(false);
     setInputValue('');
+    clear();
   };
 
   const handleInput = (e: any) => {
@@ -46,16 +26,8 @@ export default function Content() {
   };
 
   const handleClick = () => {
-    setShowResult(true);
-    ipcRenderer.sendMessage('analyze-contract', inputValue);
+    setContract(inputValue);
   };
-
-  useEffect(() => {
-    // @ts-ignore
-    ipcRenderer.on('analyze-contract', (str: string) => {
-      console.log('收到消息...', str);
-    });
-  }, []);
 
   return (
     <Card
@@ -88,7 +60,12 @@ export default function Content() {
       >
         清空
       </Button>
-      {showResult && <div style={{ marginTop: 24 }}>xxxxxx</div>}
+      {showResult && (
+        <div style={{ marginTop: 24 }}>
+          <WalletAgeProgress percent={percent} />
+          <WalletAgeResult data={result} />
+        </div>
+      )}
     </Card>
   );
 }

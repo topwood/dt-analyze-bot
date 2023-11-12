@@ -66,6 +66,9 @@ export default (data: IData[], chain: Chain) => {
   }, [data]);
 
   useEffect(() => {
+    if (data.length === 0) {
+      return;
+    }
     if (unBind.current) {
       unBind.current();
     }

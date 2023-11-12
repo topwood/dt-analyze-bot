@@ -7,20 +7,6 @@ import useWalletAge from './hooks/useWalletAge';
 
 const { TextArea } = Input;
 
-// 校验地址合法性
-const isValidAddress = (address: string) => {
-  if (!address) {
-    return false;
-  }
-  if (!address.startsWith('0x')) {
-    return false;
-  }
-  if (address.length !== 42) {
-    return false;
-  }
-  return true;
-};
-
 // 批量获取钱包的年龄
 export default function Content() {
   const [data, setData] = useState<IData[]>([]);
@@ -49,21 +35,13 @@ export default function Content() {
     if (!inputValue) {
       return;
     }
-    const addresses = inputValue.split('\n');
-    const d: IData[] = [];
-    addresses.forEach((item: any) => {
-      const a = item.trim();
-      if (isValidAddress(a)) {
-        d.push({
-          address: a,
-        });
-      } else {
-        d.push({
-          address: a,
-          error: '是非法地址',
-        });
-      }
-    });
+
+    // 匹配出所有的钱包地址
+    const regEx = /0x[\da-fA-F]{40}/g;
+    const matches = inputValue.match(regEx) || [];
+    const d: IData[] = matches.map((item) => ({
+      address: item,
+    }));
     setData(d);
   };
 

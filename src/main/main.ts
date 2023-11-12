@@ -146,6 +146,27 @@ function getWalletAge(event: any, address: string, chain: chain) {
   });
 }
 
+function getContract(event: any, address: string, chain: chain) {
+  if (!isValidAddress(address)) {
+    return;
+  }
+
+  const fetchHTML = `
+      new Promise((resolve, reject) => {
+        fetch('https://etherscan.io/token/tokenholderchart/${address}').then(res => {
+          resolve(res.text())
+        })
+      });
+    `;
+
+  ethWin.webContents.executeJavaScript(fetchHTML).then((html = '') => {
+    let regEx = /(?<=data-clipboard-text=")0x[\da-fA-F]+(?=")/g;
+
+    let matches = html.match(regEx) || [];
+    event.reply('analyze-contract', matches);
+  });
+}
+
 class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
@@ -170,9 +191,18 @@ ipcMain.on('get-wallet-age', async (event, address, chain) => {
   }
 });
 
-ipcMain.on('analyze-contract', async (event, contractAddress) => {
-  console.log('analyze-contract......', contractAddress);
-  event.reply('analyze-contract', `test${contractAddress}`);
+ipcMain.on('analyze-contract', async (event, address, chain) => {
+  console.log('收到消息 analyze-contract', address);
+  if (!ethWin) {
+    console.log('正在打开以太坊浏览器...');
+    createEthWindow(event);
+    setTimeout(() => {
+      console.log('正在分析...');
+      getContract(event, address, chain);
+    }, 1000);
+  } else {
+    await getContract(event, address, chain);
+  }
 });
 
 if (process.env.NODE_ENV === 'production') {

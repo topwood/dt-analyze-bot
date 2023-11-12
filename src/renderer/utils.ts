@@ -19,6 +19,20 @@ export interface IData {
 
 export type Chain = 'eth' | 'bsc';
 
+// 校验地址合法性
+export const isValidAddress = (address: string) => {
+  if (!address) {
+    return false;
+  }
+  if (!address.startsWith('0x')) {
+    return false;
+  }
+  if (address.length !== 42) {
+    return false;
+  }
+  return true;
+};
+
 export const getError = (str?: string) => {
   if (!str) {
     return '-';
