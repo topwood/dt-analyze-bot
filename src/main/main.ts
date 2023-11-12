@@ -218,10 +218,12 @@ ipcMain.on('analyze-contract', async (event, address, chain) => {
   if (!ethWin) {
     console.log('正在打开以太坊浏览器...');
     createEthWindow(event);
-    setTimeout(() => {
-      console.log('正在分析...');
-      getContract(event, address, chain);
-    }, 1000);
+    // 加入任务队列，等打开成功并且code=200时再做处理
+    globalTasks.push({
+      event,
+      address,
+      chain,
+    });
   } else {
     await getContract(event, address, chain);
   }
