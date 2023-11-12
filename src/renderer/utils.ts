@@ -17,6 +17,8 @@ export interface IData {
   value?: string;
 }
 
+export type Chain = 'eth' | 'bsc';
+
 export const getError = (str?: string) => {
   if (!str) {
     return '-';

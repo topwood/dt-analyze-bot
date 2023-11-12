@@ -1,16 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button, Card, Input, Radio } from 'antd';
-import {
-  formatDate,
-  getError,
-  groupArrayElements,
-  IData,
-  sortDate,
-} from './utils';
+import { Chain, IData } from './utils';
 import WalletAgeResult from './WalletAgeResult';
 import WalletAgeProgress from './WalletAgeProgress';
+import useWalletAge from './hooks/useWalletAge';
 
-const { ipcRenderer } = window.electron;
 const { TextArea } = Input;
 
 // 校验地址合法性
@@ -29,31 +23,33 @@ const isValidAddress = (address: string) => {
 
 // 批量获取钱包的年龄
 export default function Content() {
-  const [showResult, setShowResult] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [data, setData] = useState<IData[]>([]);
-  const [chain, setChain] = useState('eth');
+  const [chain, setChain] = useState<Chain>('eth');
   const [inputValue, setInputValue] = useState('');
-  const maxCount = useRef(0);
-  const [percent, setPercent] = useState(0);
-
-  const handleReset = () => {
-    setShowResult(false);
-    setData([]);
-    setInputValue('');
-    setPercent(0);
-    maxCount.current = 0;
-  };
 
   const handleInput = (e: any) => {
     setInputValue(e.target.value);
+  };
+
+  const { loading, result, percent, showResult, clear } = useWalletAge(
+    data,
+    chain,
+  );
+  const handleReset = () => {
     setData([]);
-    setShowResult(false);
-    const { value } = e.target;
-    if (!value) {
+    setInputValue('');
+    clear();
+  };
+
+  const handleClick = () => {
+    if (loading) {
+      alert('正在加载中，请稍后再试');
       return;
     }
-    const addresses = value.split('\n');
+    if (!inputValue) {
+      return;
+    }
+    const addresses = inputValue.split('\n');
     const d: IData[] = [];
     addresses.forEach((item: any) => {
       const a = item.trim();
@@ -71,80 +67,6 @@ export default function Content() {
     setData(d);
   };
 
-  const handleClick = () => {
-    if (loading) {
-      alert('正在加载中，请稍后再试');
-      return;
-    }
-    setPercent(0);
-    const validData = data.filter((item) => !item.error);
-    let max = validData.length;
-    setShowResult(true);
-    maxCount.current = max;
-    // 全部非法的直接返回了
-    if (max <= 0) {
-      return;
-    }
-    const { groups, loopCounts, batches } = groupArrayElements(validData, 10);
-
-    setLoading(true);
-
-    // 当前批次的数量
-    let currentBacthCount = batches[0];
-    // 当前游标
-    let currentCursor = 0;
-    // 上一次游标
-    let lastCursor = -1;
-
-    // 轮询是否一批结束了，一批结束了可以请求下一批
-    const interval = setInterval(() => {
-      // 说明一批请求完了
-      if (currentCursor > lastCursor && currentCursor < loopCounts) {
-        lastCursor = currentCursor;
-        currentBacthCount = batches[currentCursor];
-        groups[currentCursor].forEach((item) => {
-          ipcRenderer.sendMessage('get-wallet-age', item.address, chain);
-        });
-      } else if (currentCursor >= loopCounts) {
-        // 结束轮询
-        clearInterval(interval);
-      }
-    }, 500);
-
-    // @ts-ignore
-    ipcRenderer.on('get-wallet-age', (dateStr: string) => {
-      if (dateStr.startsWith('error')) {
-        alert(`内部错误...${dateStr}`);
-        setLoading(false);
-        setShowResult(false);
-        return;
-      }
-      const [address, age, value] = dateStr.split('#');
-      const d = [...data];
-      d.forEach((item) => {
-        if (item.address === address) {
-          const [last, first] = age.split('|');
-          item.first = formatDate(first);
-          item.last = formatDate(last);
-          item.error = getError(age);
-          item.value = value;
-        }
-      });
-      setData(d);
-
-      currentBacthCount -= 1;
-      if (currentBacthCount === 0) {
-        currentCursor += 1;
-      }
-      max -= 1;
-      setPercent(((maxCount.current - max) / maxCount.current) * 100);
-      if (max === 0) {
-        setLoading(false);
-      }
-    });
-  };
-
-  sortDate(data);
   return (
     <Card
       title="批量输入钱包地址,获取它们的年份"
@@ -180,7 +102,7 @@ export default function Content() {
       {showResult && (
         <div style={{ marginTop: 24 }}>
           <WalletAgeProgress percent={percent} />
-          <WalletAgeResult data={data} />
+          <WalletAgeResult data={result} />
         </div>
       )}
     </Card>

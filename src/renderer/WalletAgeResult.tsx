@@ -6,12 +6,16 @@ import { IData, dateCheck, getWallet } from './utils';
 const renderAddress = (item: IData) => {
   if (item.error) {
     return (
-      <div style={{ color: 'yellow' }}>{`钱包 ${item.address} ${
-        item.error || '是非法钱包地址'
-      } `}</div>
+      <div key={item.address} style={{ color: 'yellow' }}>{`钱包 ${
+        item.address
+      } ${item.error || '是非法钱包地址'} `}</div>
     );
   }
-  return <div>{`钱包 ${item.address} 的年龄是 ${item.first || '...'}`}</div>;
+  return (
+    <div key={item.address}>{`钱包 ${item.address} 的年龄是 ${
+      item.first || '...'
+    }`}</div>
+  );
 };
 
 const renderTable = (data: IData[]) => {

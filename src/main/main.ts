@@ -157,9 +157,12 @@ class AppUpdater {
 let mainWindow: BrowserWindow | null = null;
 
 ipcMain.on('get-wallet-age', async (event, address, chain) => {
+  console.log('收到消息 get-wallet-age', address);
   if (!ethWin) {
+    console.log('正在打开以太坊浏览器...');
     createEthWindow(event);
     setTimeout(() => {
+      console.log('正在分析...');
       getWalletAge(event, address, chain);
     }, 1000);
   } else {
