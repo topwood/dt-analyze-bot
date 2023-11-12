@@ -58,18 +58,20 @@ export const formatDate = (str?: string) => {
   }
 
   const regex =
-    /from (?:(\d+)? day?s?)? ?(?:(\d+)? hr?s?)? ?(?:(\d+)? min?s?)? ago/;
+    /from (?:(\d+)? day?s?)? ?(?:(\d+)? hr?s?)? ?(?:(\d+)? min?s?)? ?(?:(\d+)? sec?s?)? ago/;
   const match = str.match(regex);
 
   if (match) {
     let days = parseInt(match[1], 10) || 0;
     let hours = parseInt(match[2], 10) || 0;
     let minutes = parseInt(match[3], 10) || 0;
+    let seconds = parseInt(match[4], 10) || 0;
 
     let dt = new Date();
     dt.setDate(dt.getDate() - days);
     dt.setHours(dt.getHours() - hours);
     dt.setMinutes(dt.getMinutes() - minutes);
+    dt.setSeconds(dt.getSeconds() - seconds);
     return dayjs(dt).format('YYYY-MM-DD HH:mm:ss');
   }
   return '-';
