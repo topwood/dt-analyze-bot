@@ -2,6 +2,8 @@ import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import { ConfigProvider, theme } from 'antd';
 import './App.css';
 import Layout from './Layout';
+import WalletAge from './WalletAge';
+import Contract from './Contract';
 
 export default function App() {
   return (
@@ -11,9 +13,12 @@ export default function App() {
       }}
     >
       <Router>
-        <Routes>
-          <Route path="/" element={<Layout />} />
-        </Routes>
+        <Layout>
+          <Routes>
+            <Route path="/contract" element={<Contract />} />
+            <Route path="/" element={<WalletAge />} />
+          </Routes>
+        </Layout>
       </Router>
     </ConfigProvider>
   );

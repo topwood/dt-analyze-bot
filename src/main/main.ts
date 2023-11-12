@@ -167,6 +167,11 @@ ipcMain.on('get-wallet-age', async (event, address, chain) => {
   }
 });
 
+ipcMain.on('analyze-contract', async (event, contractAddress) => {
+  console.log('analyze-contract......', contractAddress);
+  event.reply('analyze-contract', `test${contractAddress}`);
+});
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
