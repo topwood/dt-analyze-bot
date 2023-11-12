@@ -15,7 +15,8 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
-let globalTasks: any[] = [];
+let walletGlobalTasks: any[] = [];
+let contractGlobalTasks: any[] = [];
 
 const fs = require('node:fs');
 
@@ -80,11 +81,17 @@ const createEthWindow = (event: any, show: boolean = false) => {
       // 如果检测到有200了，自动关闭窗口，并且将任务队列的任务都触发
       if (details.statusCode === 200) {
         ethWin.hide();
-        if (globalTasks.length > 0) {
-          globalTasks.forEach((item) => {
+        if (walletGlobalTasks.length > 0) {
+          walletGlobalTasks.forEach((item) => {
             getWalletAge(item.event, item.address, item.chain);
           });
-          globalTasks = [];
+          walletGlobalTasks = [];
+        }
+        if (contractGlobalTasks.length > 0) {
+          contractGlobalTasks.forEach((item) => {
+            getContract(item.event, item.address, item.chain);
+          });
+          contractGlobalTasks = [];
         }
       }
       console.log(
@@ -203,7 +210,7 @@ ipcMain.on('get-wallet-age', async (event, address, chain) => {
     console.log('正在打开以太坊浏览器...');
     createEthWindow(event);
     // 加入任务队列，等打开成功并且code=200时再做处理
-    globalTasks.push({
+    walletGlobalTasks.push({
       event,
       address,
       chain,
@@ -219,7 +226,7 @@ ipcMain.on('analyze-contract', async (event, address, chain) => {
     console.log('正在打开以太坊浏览器...');
     createEthWindow(event);
     // 加入任务队列，等打开成功并且code=200时再做处理
-    globalTasks.push({
+    contractGlobalTasks.push({
       event,
       address,
       chain,
