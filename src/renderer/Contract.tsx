@@ -31,7 +31,7 @@ export default function Content() {
 
   return (
     <Card
-      title="输入合约地址进行分析"
+      title="输入合约地址，一键分析合约持仓Top100钱包年龄分布"
       extra={
         <Radio.Group
           value={chain}

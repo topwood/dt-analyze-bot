@@ -1,53 +1,36 @@
 import { useState } from 'react';
 import { Button, Card, Input, Radio } from 'antd';
-import { Chain, IData } from './utils';
+import { Chain } from './utils';
 import WalletAgeResult from './WalletAgeResult';
 import WalletAgeProgress from './WalletAgeProgress';
-import useWalletAge from './hooks/useWalletAge';
+import useContract from './hooks/useContract';
 
-const { TextArea } = Input;
-
-// 批量获取钱包的年龄
-export default function Content() {
-  const [data, setData] = useState<IData[]>([]);
+export default function Rat() {
   const [chain, setChain] = useState<Chain>('eth');
   const [inputValue, setInputValue] = useState('');
+  const [contract, setContract] = useState('');
+
+  const { showResult, loading, result, percent, clear } = useContract(
+    contract,
+    chain,
+  );
+
+  const handleReset = () => {
+    setInputValue('');
+    clear();
+  };
 
   const handleInput = (e: any) => {
     setInputValue(e.target.value);
   };
 
-  const { loading, result, percent, showResult, clear } = useWalletAge(
-    data,
-    chain,
-  );
-  const handleReset = () => {
-    setData([]);
-    setInputValue('');
-    clear();
-  };
-
   const handleClick = () => {
-    if (loading) {
-      alert('正在加载中，请稍后再试');
-      return;
-    }
-    if (!inputValue) {
-      return;
-    }
-
-    // 匹配出所有的钱包地址
-    const regEx = /0x[\da-fA-F]{40}/g;
-    const matches = inputValue.match(regEx) || [];
-    const d: IData[] = matches.map((item) => ({
-      address: item,
-    }));
-    setData(d);
+    setContract(inputValue);
   };
 
   return (
     <Card
-      title="批量输入钱包地址,获取钱包首次交易时间分布"
+      title="输入合约地址，一键分析合约可疑老鼠仓钱包"
       extra={
         <Radio.Group
           value={chain}
@@ -60,15 +43,14 @@ export default function Content() {
         </Radio.Group>
       }
     >
-      <TextArea
-        rows={16}
+      <Input
         style={{ width: '100%', marginBottom: 12 }}
-        placeholder="请输入合法钱包地址，多个换行"
+        placeholder="请输入合约地址"
         value={inputValue}
         onChange={handleInput}
       />
       <Button type="primary" onClick={handleClick} loading={loading}>
-        一键获取钱包的年龄
+        一键分析老鼠仓钱包
       </Button>
       <Button
         style={{ marginLeft: 12 }}

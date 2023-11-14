@@ -4,6 +4,7 @@ import './App.css';
 import Layout from './Layout';
 import WalletAge from './WalletAge';
 import Contract from './Contract';
+import Rat from './Rat';
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Layout>
           <Routes>
             <Route path="/contract" element={<Contract />} />
+            <Route path="/rat" element={<Rat />} />
             <Route path="/" element={<WalletAge />} />
           </Routes>
         </Layout>

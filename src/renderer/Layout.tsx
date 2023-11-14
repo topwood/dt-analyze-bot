@@ -25,14 +25,38 @@ const App: React.FC<any> = ({ children }) => {
           items={[
             {
               key: '1',
-              label: '批量获取钱包年龄',
+              label: '批量分析钱包年龄',
               onClick: () => {
                 navigate('/');
               },
             },
             {
               key: '2',
-              label: '合约分析',
+              label: '分析合约持仓钱包年龄',
+              onClick: () => {
+                navigate('/contract');
+              },
+            },
+            {
+              key: '3',
+              label: '自动分析老鼠仓',
+              disabled: true,
+              onClick: () => {
+                navigate('/rat');
+              },
+            },
+            {
+              key: '4',
+              label: '一键监控【付费】',
+              disabled: true,
+              onClick: () => {
+                navigate('/contract');
+              },
+            },
+            {
+              key: '5',
+              label: '一键跟单【付费】',
+              disabled: true,
               onClick: () => {
                 navigate('/contract');
               },
