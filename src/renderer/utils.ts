@@ -15,6 +15,14 @@ export interface IData {
    * 价值
    */
   value?: string;
+  /**
+   * 以太坊价值
+   */
+  ethValue?: string;
+  /**
+   * 交易次数
+   */
+  txs?: string;
 }
 
 export type Chain = 'eth' | 'bsc';

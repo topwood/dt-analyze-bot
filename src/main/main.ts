@@ -166,9 +166,22 @@ function getWalletAge(event: any, address: string, chain: chain) {
       tokenValue = number;
     }
 
+    // 匹配交易总次数
+    let num = 0;
+    let regEx =
+      /(?<=title="Click to view full list">)[\d,]+(?=<\/a> transactions)/g;
+
+    let txsMatches = html.match(regEx);
+    if (txsMatches && txsMatches[0]) {
+      let numberAsText = txsMatches[0];
+      num = parseInt(numberAsText.replace(/,/g, ''));
+    }
+
     event.reply(
       'get-wallet-age',
-      `${address}#${matches.join('|')}#${ethValue + tokenValue}`,
+      `${address}#${matches.join('|')}#${
+        ethValue + tokenValue
+      }#${ethValue}#${num}`,
     );
   });
 }
@@ -194,15 +207,31 @@ function getContract(event: any, address: string, chain: chain) {
   });
 }
 
+let mainWindow: BrowserWindow | null = null;
+
 class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
     autoUpdater.logger = log;
     autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.on('error', (error) => {
+      mainWindow?.webContents.send('error', error);
+    });
+    autoUpdater.on('update-available', (info) => {
+      mainWindow?.webContents.send('update_available', info);
+    });
+    autoUpdater.on('update-downloaded', () => {
+      mainWindow?.webContents.send('update_downloaded');
+      autoUpdater.quitAndInstall();
+    });
+    autoUpdater.on('download-progress', (progressObj) => {
+      mainWindow?.webContents.send(
+        'download_progress',
+        progressObj.percent.toFixed(2),
+      );
+    });
   }
 }
-
-let mainWindow: BrowserWindow | null = null;
 
 ipcMain.on('get-wallet-age', async (event, address, chain) => {
   console.log('收到消息 get-wallet-age', address);

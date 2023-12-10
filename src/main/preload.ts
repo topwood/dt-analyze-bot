@@ -2,7 +2,13 @@
 /* eslint no-unused-vars: off */
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
-export type Channels = 'get-wallet-age' | 'analyze-contract';
+export type Channels =
+  | 'get-wallet-age'
+  | 'analyze-contract'
+  | 'update_available'
+  | 'update_downloaded'
+  | 'download_progress'
+  | 'error';
 
 const electronHandler = {
   ipcRenderer: {

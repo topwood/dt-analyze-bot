@@ -63,6 +63,36 @@ const renderTable = (data: IData[]) => {
             return -1;
           },
         },
+        {
+          dataIndex: 'ethValue',
+          title: 'ETH价值',
+          render: (value) => {
+            if (!value) return '-';
+            return `$${Number(value).toFixed(2)}`;
+          },
+          sorter: (a, b) => {
+            if (!a.ethValue || !b.ethValue) {
+              return 1;
+            }
+            if (+a.ethValue > +b.ethValue) {
+              return 1;
+            }
+            return -1;
+          },
+        },
+        {
+          dataIndex: 'txs',
+          title: '交易次数',
+          sorter: (a, b) => {
+            if (!a.txs || !b.txs) {
+              return 1;
+            }
+            if (+a.txs > +b.txs) {
+              return 1;
+            }
+            return -1;
+          },
+        },
       ]}
     />
   );

@@ -80,7 +80,7 @@ export default (data: IData[], chain: Chain) => {
         setLoading(false);
         return;
       }
-      const [address, age, value] = dateStr.split('#');
+      const [address, age, value, ethValue, txs] = dateStr.split('#');
       const d = [...data];
       d.forEach((item) => {
         if (item.address === address) {
@@ -89,6 +89,8 @@ export default (data: IData[], chain: Chain) => {
           item.last = formatDate(last);
           item.error = getError(age);
           item.value = value;
+          item.ethValue = ethValue;
+          item.txs = txs;
         }
       });
       setResult(d);
@@ -98,11 +100,6 @@ export default (data: IData[], chain: Chain) => {
         currentCursor.current += 1;
       }
       maxCountCursor.current -= 1;
-      console.log(
-        maxCountCursor.current,
-        maxCount.current,
-        ((maxCount.current - maxCountCursor.current) / maxCount.current) * 100,
-      );
       setPercent(
         ((maxCount.current - maxCountCursor.current) / maxCount.current) * 100,
       );
